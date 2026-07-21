@@ -1,9 +1,8 @@
 package migrations
 
-import _ "embed"
+import "embed"
 
-//go:embed 001_create_users.sql
-var CreateUsersMySQL string
-
-//go:embed 001_create_users.sqlite.sql
-var CreateUsersSQLite string
+// FS 内嵌各数据库方言的 goose 迁移文件。
+//
+//go:embed mysql/*.sql sqlite/*.sql
+var FS embed.FS

@@ -53,6 +53,14 @@ func (l *Logger) Named(name string) *Logger {
 	return &Logger{base: l.base.Named(name)}
 }
 
+// Zap 返回底层 *zap.Logger，供 gin-contrib/zap 等中间件使用。
+func (l *Logger) Zap() *zap.Logger {
+	if l == nil || l.base == nil {
+		return zap.NewNop()
+	}
+	return l.base
+}
+
 // WithContext 绑定 ctx 中的 trace_id。业务层打日志应始终先调用此方法。
 func (l *Logger) WithContext(ctx context.Context) *zap.Logger {
 	if l == nil || l.base == nil {
@@ -73,11 +81,6 @@ func (l *Logger) Sync() error {
 		return nil
 	}
 	return l.base.Sync()
-}
-
-// WithTraceID 将 trace_id 写入 context，供后续 WithContext 读取。
-func WithTraceID(ctx context.Context, traceID string) context.Context {
-	return context.WithValue(ctx, ctxkey.TraceID, traceID)
 }
 
 func parseLevel(level string) (zapcore.Level, error) {

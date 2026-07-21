@@ -1,12 +1,11 @@
 package response
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
-	"github.com/code-practice-archives/api-demo/internal/pkg/ctxkey"
 	"github.com/code-practice-archives/api-demo/internal/pkg/errcode"
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,9 +17,9 @@ type Response struct {
 }
 
 func Success(c *gin.Context, data any) {
-	writeJSON(c.Writer, http.StatusOK, Response{
+	c.JSON(http.StatusOK, Response{
 		Data:    data,
-		TraceID: traceID(c),
+		TraceID: requestid.Get(c),
 	})
 }
 
@@ -31,24 +30,9 @@ func Error(c *gin.Context, err error) {
 		appErr = errcode.ErrInternal
 	}
 
-	writeJSON(c.Writer, appErr.HTTPStatus, Response{
+	c.JSON(appErr.HTTPStatus, Response{
 		Code:    appErr.Code,
 		Message: appErr.Message,
-		TraceID: traceID(c),
+		TraceID: requestid.Get(c),
 	})
-}
-
-func writeJSON(w http.ResponseWriter, status int, resp Response) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(resp)
-}
-
-func traceID(c *gin.Context) string {
-	if v, ok := c.Get(ctxkey.TraceID); ok {
-		if s, ok := v.(string); ok {
-			return s
-		}
-	}
-	return ""
 }

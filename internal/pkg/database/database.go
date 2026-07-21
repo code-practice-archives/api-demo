@@ -1,8 +1,10 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 	"github.com/code-practice-archives/api-demo/migrations"
 	"github.com/glebarez/sqlite"
 	mysqldriver "github.com/go-sql-driver/mysql"
+	"github.com/pressly/goose/v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -58,15 +61,43 @@ func OpenSQLite(dsn string) (*gorm.DB, error) {
 }
 
 func migrate(db *gorm.DB) error {
-	ddl := migrations.CreateUsersSQLite
-	if db.Dialector.Name() == "mysql" {
-		ddl = migrations.CreateUsersMySQL
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("get sql db: %w", err)
 	}
-	if err := db.Exec(ddl).Error; err != nil {
+
+	dialect, dir, err := gooseDialect(db.Dialector.Name())
+	if err != nil {
+		return err
+	}
+
+	fsys, err := fs.Sub(migrations.FS, dir)
+	if err != nil {
+		return fmt.Errorf("migrations fs %q: %w", dir, err)
+	}
+
+	provider, err := goose.NewProvider(dialect, sqlDB, fsys)
+	if err != nil {
+		return fmt.Errorf("goose provider: %w", err)
+	}
+
+	if _, err := provider.Up(context.Background()); err != nil {
 		return fmt.Errorf("migrate schema: %w", err)
 	}
+
 	log.Println("database tables migrated")
 	return nil
+}
+
+func gooseDialect(name string) (goose.Dialect, string, error) {
+	switch name {
+	case "mysql":
+		return goose.DialectMySQL, "mysql", nil
+	case "sqlite":
+		return goose.DialectSQLite3, "sqlite", nil
+	default:
+		return "", "", fmt.Errorf("unsupported goose dialect %q", name)
+	}
 }
 
 // ensureMySQLDatabase 在连接业务库前创建数据库（若不存在）。
