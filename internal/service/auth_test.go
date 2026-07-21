@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/code-practice-archives/api-demo/internal/pkg/database"
+	"github.com/code-practice-archives/api-demo/internal/pkg/errcode"
 	"github.com/code-practice-archives/api-demo/internal/pkg/jwtx"
 	"github.com/code-practice-archives/api-demo/internal/repository"
 )
@@ -71,12 +72,12 @@ func TestAuthService_Register(t *testing.T) {
 		{
 			name:    "username too short",
 			in:      RegisterInput{Username: "ab", Password: "secret123"},
-			wantErr: ErrInvalidInput,
+			wantErr: errcode.ErrInvalidArgument,
 		},
 		{
 			name:    "password too short",
 			in:      RegisterInput{Username: "bob", Password: "123"},
-			wantErr: ErrInvalidInput,
+			wantErr: errcode.ErrInvalidArgument,
 		},
 		{
 			name: "username taken",
@@ -87,7 +88,7 @@ func TestAuthService_Register(t *testing.T) {
 				}
 			},
 			in:      RegisterInput{Username: "bob", Password: "secret123"},
-			wantErr: ErrUsernameTaken,
+			wantErr: errcode.ErrUsernameTaken,
 		},
 	}
 
@@ -141,17 +142,17 @@ func TestAuthService_Login(t *testing.T) {
 				}
 			},
 			in:      LoginInput{Username: "carol", Password: "wrongpass"},
-			wantErr: ErrInvalidCredentials,
+			wantErr: errcode.ErrInvalidCredentials,
 		},
 		{
 			name:    "user not found",
 			in:      LoginInput{Username: "nobody", Password: "secret123"},
-			wantErr: ErrInvalidCredentials,
+			wantErr: errcode.ErrInvalidCredentials,
 		},
 		{
 			name:    "invalid input",
 			in:      LoginInput{Username: "ab", Password: "123"},
-			wantErr: ErrInvalidInput,
+			wantErr: errcode.ErrInvalidArgument,
 		},
 	}
 
