@@ -8,11 +8,11 @@ import (
 )
 
 type AuthHandler struct {
-	auth *service.AuthService
+	svc *service.Services
 }
 
-func NewAuthHandler(auth *service.AuthService) *AuthHandler {
-	return &AuthHandler{auth: auth}
+func NewAuthHandler(svc *service.Services) *AuthHandler {
+	return &AuthHandler{svc: svc}
 }
 
 type authRequest struct {
@@ -20,14 +20,26 @@ type authRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type authResponse struct {
+	Token string           `json:"token"`
+	User  authUserResponse `json:"user"`
+}
+
+type authUserResponse struct {
+	ID        int64  `json:"id"`
+	Username  string `json:"username"`
+	CreatedAt int64  `json:"created_at"`
+	UpdatedAt int64  `json:"updated_at"`
+}
+
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req authRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, errcode.ErrInvalidArgument.WithMessage("username and password are required"))
+		response.Error(c, errcode.ErrInvalidArgument)
 		return
 	}
 
-	result, err := h.auth.Register(c.Request.Context(), service.RegisterInput{
+	result, err := h.svc.Auth.Register(c, service.RegisterInput{
 		Username: req.Username,
 		Password: req.Password,
 	})
@@ -36,17 +48,17 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, result)
+	response.Success(c, toAuthResponse(result))
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req authRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, errcode.ErrInvalidArgument.WithMessage("username and password are required"))
+		response.Error(c, errcode.ErrInvalidArgument)
 		return
 	}
 
-	result, err := h.auth.Login(c.Request.Context(), service.LoginInput{
+	result, err := h.svc.Auth.Login(c, service.LoginInput{
 		Username: req.Username,
 		Password: req.Password,
 	})
@@ -55,5 +67,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, result)
+	response.Success(c, toAuthResponse(result))
+}
+
+func toAuthResponse(result *service.AuthResult) authResponse {
+	return authResponse{
+		Token: result.Token,
+		User: authUserResponse{
+			ID:        result.User.Id,
+			Username:  result.User.Username,
+			CreatedAt: result.User.CreatedAt,
+			UpdatedAt: result.User.UpdatedAt,
+		},
+	}
 }

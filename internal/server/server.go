@@ -25,16 +25,15 @@ func New(cfg *config.Config) (*Server, error) {
 		return nil, err
 	}
 
-	users := repository.NewUserRepository(db)
+	repos := repository.New(db)
 	jwtMgr := jwtx.NewManager(cfg.JWT.Secret, cfg.JWT.Expire())
-	authSvc := service.NewAuthService(users, jwtMgr)
-	authH := handler.NewAuthHandler(authSvc)
+	svc := service.New(repos, jwtMgr)
 
 	return &Server{
 		httpServer: &http.Server{
 			Addr: cfg.Server.Addr,
 			Handler: router.New(handler.Handlers{
-				Auth: authH,
+				Auth: handler.NewAuthHandler(svc),
 			}),
 		},
 	}, nil

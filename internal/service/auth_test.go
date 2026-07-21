@@ -22,9 +22,9 @@ func newTestAuthService(t *testing.T) *AuthService {
 		t.Fatalf("open sqlite: %v", err)
 	}
 
-	users := repository.NewUserRepository(db)
+	repos := repository.New(db)
 	jwtMgr := jwtx.NewManager("test-secret", time.Hour)
-	return NewAuthService(users, jwtMgr)
+	return NewAuthService(repos, jwtMgr)
 }
 
 func TestAuthService_RegisterAndLogin(t *testing.T) {
