@@ -8,6 +8,7 @@ import (
 	"github.com/code-practice-archives/api-demo/internal/pkg/jwtx"
 	"github.com/code-practice-archives/api-demo/internal/pkg/logger"
 	"github.com/code-practice-archives/api-demo/internal/pkg/loginjail"
+	"github.com/code-practice-archives/api-demo/internal/pkg/ratelimit"
 	"github.com/code-practice-archives/api-demo/internal/pkg/redisx"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -33,18 +34,15 @@ func provideJWTManager(cfg jwtx.Config) *jwtx.Manager {
 	return jwtx.NewManager(cfg.Secret, cfg.Expire(), cfg.RefreshExpire())
 }
 
-func provideLoginJail(cfg loginjail.Config, rdb *redis.Client) (loginjail.Jail, error) {
-	maxRetries := cfg.MaxRetries
-	lockFor := cfg.LockDuration()
+func provideLoginJail(cfg loginjail.Config, rdb *redis.Client) loginjail.Jail {
+	return loginjail.NewRedis(rdb, cfg.MaxRetries, cfg.LockDuration())
+}
 
-	switch cfg.Store {
-	case "", loginjail.StoreMemory:
-		return loginjail.NewMemory(maxRetries, lockFor), nil
-	case loginjail.StoreRedis:
-		return loginjail.NewRedis(rdb, maxRetries, lockFor), nil
-	default:
-		return nil, fmt.Errorf("init login jail: auth.store must be %q or %q", loginjail.StoreMemory, loginjail.StoreRedis)
+func provideRateLimiter(cfg ratelimit.Config, rdb *redis.Client) ratelimit.Limiter {
+	if !cfg.Enabled {
+		return ratelimit.Noop{}
 	}
+	return ratelimit.NewRedis(rdb, cfg.Limit, cfg.Window())
 }
 
 func provideHTTPServer(cfg config.ServerConfig, engine *gin.Engine) *http.Server {

@@ -34,11 +34,7 @@ func initializeServer(cfg *config.Config) (*server.Server, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	jail, err := provideLoginJail(loginjailConfig, client)
-	if err != nil {
-		cleanup()
-		return nil, nil, err
-	}
+	jail := provideLoginJail(loginjailConfig, client)
 	loggerConfig := cfg.Log
 	logger, cleanup2, err := provideLogger(loggerConfig)
 	if err != nil {
@@ -48,7 +44,9 @@ func initializeServer(cfg *config.Config) (*server.Server, func(), error) {
 	services := service.New(repositories, manager, jail, logger)
 	authHandler := handler.NewAuthHandler(services)
 	handlers := handler.New(authHandler)
-	engine := router.New(handlers, manager, logger)
+	ratelimitConfig := cfg.RateLimit
+	limiter := provideRateLimiter(ratelimitConfig, client)
+	engine := router.New(handlers, manager, logger, limiter)
 	httpServer := provideHTTPServer(serverConfig, engine)
 	serverServer := server.New(httpServer, logger)
 	return serverServer, func() {

@@ -15,4 +15,10 @@ var (
 		Message:    "internal server error",
 		HTTPStatus: http.StatusInternalServerError,
 	}
+
+	ErrTooManyRequests = &Error{
+		Code:       "common.too_many_requests",
+		Message:    "too many requests, try again later",
+		HTTPStatus: http.StatusTooManyRequests,
+	}
 )

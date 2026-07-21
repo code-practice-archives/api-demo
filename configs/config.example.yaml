@@ -26,4 +26,8 @@ jwt:
 auth:
   max_retries: 5   # 连续登录失败次数上限
   lock_minutes: 15 # 达到上限后锁定分钟数
-  store: redis     # memory（单机）| redis（分布式共享）
+
+rate_limit:
+  enabled: true
+  limit: 120             # 每个窗口内同一 IP 最多请求数
+  window_seconds: 60     # 固定窗口时长（秒）

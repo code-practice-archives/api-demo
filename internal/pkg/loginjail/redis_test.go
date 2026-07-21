@@ -4,25 +4,7 @@ import (
 	"context"
 	"testing"
 	"time"
-
-	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
 )
-
-func newTestRedisJail(t *testing.T, maxRetries int, lockFor time.Duration) (*redisJail, *miniredis.Miniredis) {
-	t.Helper()
-
-	mr, err := miniredis.Run()
-	if err != nil {
-		t.Fatalf("miniredis: %v", err)
-	}
-	t.Cleanup(mr.Close)
-
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { _ = rdb.Close() })
-
-	return NewRedis(rdb, maxRetries, lockFor).(*redisJail), mr
-}
 
 func TestRedis_LockAfterMaxRetries(t *testing.T) {
 	j, _ := newTestRedisJail(t, 3, time.Minute)

@@ -5,15 +5,17 @@ import (
 	"github.com/code-practice-archives/api-demo/internal/middleware"
 	"github.com/code-practice-archives/api-demo/internal/pkg/jwtx"
 	"github.com/code-practice-archives/api-demo/internal/pkg/logger"
+	"github.com/code-practice-archives/api-demo/internal/pkg/ratelimit"
 	"github.com/gin-gonic/gin"
 )
 
-func New(h handler.Handlers, jwt *jwtx.Manager, log *logger.Logger) *gin.Engine {
+func New(h handler.Handlers, jwt *jwtx.Manager, log *logger.Logger, limiter ratelimit.Limiter) *gin.Engine {
 	r := gin.New()
 	r.Use(
 		gin.Recovery(),
 		middleware.TraceID(),
 		middleware.AccessLog(log),
+		middleware.RateLimit(limiter),
 	)
 
 	api := r.Group("/api/v1")

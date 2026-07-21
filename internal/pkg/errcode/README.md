@@ -25,6 +25,7 @@
 | `auth.invalid_refresh_token` | refresh token 无效 / 过期 / 已吊销 |
 | `common.invalid_argument` | 参数不合法 |
 | `common.internal` | 未识别的内部错误 |
+| `common.too_many_requests` | 请求过于频繁（限流） |
 
 ## 文件划分
 

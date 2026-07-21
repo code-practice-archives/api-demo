@@ -17,7 +17,7 @@ import (
 
 func newTestAuthService(t *testing.T) *AuthService {
 	t.Helper()
-	return newTestAuthServiceWithJail(t, loginjail.NewMemory(5, 15*time.Minute))
+	return newTestAuthServiceWithJail(t, loginjail.NewTestJail(t, 5, 15*time.Minute))
 }
 
 func newTestAuthServiceWithJail(t *testing.T, jail loginjail.Jail) *AuthService {
@@ -296,8 +296,7 @@ func TestAuthService_Logout(t *testing.T) {
 
 func TestAuthService_LoginJail(t *testing.T) {
 	ctx := context.Background()
-	jail := loginjail.NewMemory(3, 15*time.Minute)
-	svc := newTestAuthServiceWithJail(t, jail)
+	svc := newTestAuthServiceWithJail(t, loginjail.NewTestJail(t, 3, 15*time.Minute))
 
 	if _, err := svc.Register(ctx, RegisterInput{Username: "dave", Password: "secret123"}); err != nil {
 		t.Fatalf("seed user: %v", err)
@@ -324,8 +323,7 @@ func TestAuthService_LoginJail(t *testing.T) {
 
 func TestAuthService_LoginJailResetOnSuccess(t *testing.T) {
 	ctx := context.Background()
-	jail := loginjail.NewMemory(3, 15*time.Minute)
-	svc := newTestAuthServiceWithJail(t, jail)
+	svc := newTestAuthServiceWithJail(t, loginjail.NewTestJail(t, 3, 15*time.Minute))
 
 	if _, err := svc.Register(ctx, RegisterInput{Username: "erin", Password: "secret123"}); err != nil {
 		t.Fatalf("seed user: %v", err)
