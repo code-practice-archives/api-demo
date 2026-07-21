@@ -84,7 +84,7 @@ func (s *AuthService) Login(ctx context.Context, in LoginInput) (*AuthResult, er
 
 	user, err := s.repos.User.FindByUsername(ctx, in.Username)
 	if err != nil {
-		if errors.Is(err, repository.ErrUserNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errcode.ErrInvalidCredentials
 		}
 		return nil, err
