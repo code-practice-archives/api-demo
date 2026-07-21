@@ -18,7 +18,7 @@ const DefaultConfigFile = "configs/config.yaml"
 type Config struct {
 	Server ServerConfig     `mapstructure:"server"` // HTTP 监听地址等，留在本包以避免与 server 循环依赖
 	DB     database.Config  `mapstructure:"db"`     // 数据库连接
-	Redis  redisx.Config    `mapstructure:"redis"`  // Redis 连接（auth.store=redis 时必填）
+	Redis  redisx.Config    `mapstructure:"redis"`  // Redis 连接
 	JWT    jwtx.Config      `mapstructure:"jwt"`    // JWT 签发密钥与过期时间
 	Jail   loginjail.Config `mapstructure:"auth"`   // 登录失败锁定；YAML 键为 auth
 	Log    logger.Config    `mapstructure:"log"`    // 日志级别与文件轮转

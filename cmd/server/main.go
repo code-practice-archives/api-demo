@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/code-practice-archives/api-demo/internal/config"
-	"github.com/code-practice-archives/api-demo/internal/server"
 	"go.uber.org/zap"
 )
 
@@ -24,7 +23,7 @@ func main() {
 		log.Fatalf("load config failed: %v", err)
 	}
 
-	srv, err := server.New(cfg)
+	srv, cleanup, err := initializeServer(cfg)
 	if err != nil {
 		log.Fatalf("server init failed: %v", err)
 	}
@@ -50,7 +49,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := srv.Stop(ctx); err != nil {
+	err = srv.Stop(ctx)
+	cleanup()
+	if err != nil {
 		zlog.WithContext(ctx).Fatal("server shutdown failed", zap.Error(err))
 	}
 
