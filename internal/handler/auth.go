@@ -28,7 +28,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	result, err := h.auth.Register(service.RegisterInput{
+	result, err := h.auth.Register(c.Request.Context(), service.RegisterInput{
 		Username: req.Username,
 		Password: req.Password,
 	})
@@ -50,7 +50,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	result, err := h.auth.Login(service.LoginInput{
+	result, err := h.auth.Login(c.Request.Context(), service.LoginInput{
 		Username: req.Username,
 		Password: req.Password,
 	})

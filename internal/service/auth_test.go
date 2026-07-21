@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -28,7 +29,8 @@ func newTestAuthService(t *testing.T) *AuthService {
 func TestAuthService_RegisterAndLogin(t *testing.T) {
 	svc := newTestAuthService(t)
 
-	reg, err := svc.Register(RegisterInput{Username: "alice", Password: "secret123"})
+	ctx := context.Background()
+	reg, err := svc.Register(ctx, RegisterInput{Username: "alice", Password: "secret123"})
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -46,7 +48,7 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 		t.Fatalf("password must not appear in json: %s", raw)
 	}
 
-	login, err := svc.Login(LoginInput{Username: "alice", Password: "secret123"})
+	login, err := svc.Login(ctx, LoginInput{Username: "alice", Password: "secret123"})
 	if err != nil {
 		t.Fatalf("login: %v", err)
 	}
@@ -80,7 +82,7 @@ func TestAuthService_Register(t *testing.T) {
 			name: "username taken",
 			setup: func(t *testing.T, svc *AuthService) {
 				t.Helper()
-				if _, err := svc.Register(RegisterInput{Username: "bob", Password: "secret123"}); err != nil {
+				if _, err := svc.Register(context.Background(), RegisterInput{Username: "bob", Password: "secret123"}); err != nil {
 					t.Fatalf("seed user: %v", err)
 				}
 			},
@@ -96,7 +98,7 @@ func TestAuthService_Register(t *testing.T) {
 				tt.setup(t, svc)
 			}
 
-			got, err := svc.Register(tt.in)
+			got, err := svc.Register(context.Background(), tt.in)
 			if tt.wantErr != nil {
 				if !errors.Is(err, tt.wantErr) {
 					t.Fatalf("error = %v, want %v", err, tt.wantErr)
@@ -124,7 +126,7 @@ func TestAuthService_Login(t *testing.T) {
 			name: "success",
 			setup: func(t *testing.T, svc *AuthService) {
 				t.Helper()
-				if _, err := svc.Register(RegisterInput{Username: "carol", Password: "secret123"}); err != nil {
+				if _, err := svc.Register(context.Background(), RegisterInput{Username: "carol", Password: "secret123"}); err != nil {
 					t.Fatalf("seed user: %v", err)
 				}
 			},
@@ -134,7 +136,7 @@ func TestAuthService_Login(t *testing.T) {
 			name: "wrong password",
 			setup: func(t *testing.T, svc *AuthService) {
 				t.Helper()
-				if _, err := svc.Register(RegisterInput{Username: "carol", Password: "secret123"}); err != nil {
+				if _, err := svc.Register(context.Background(), RegisterInput{Username: "carol", Password: "secret123"}); err != nil {
 					t.Fatalf("seed user: %v", err)
 				}
 			},
@@ -160,7 +162,7 @@ func TestAuthService_Login(t *testing.T) {
 				tt.setup(t, svc)
 			}
 
-			got, err := svc.Login(tt.in)
+			got, err := svc.Login(context.Background(), tt.in)
 			if tt.wantErr != nil {
 				if !errors.Is(err, tt.wantErr) {
 					t.Fatalf("error = %v, want %v", err, tt.wantErr)

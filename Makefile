@@ -1,4 +1,4 @@
-.PHONY: run build tidy test init-config
+.PHONY: run build tidy test gen init-config
 
 run:
 	go run ./cmd/server
@@ -11,3 +11,7 @@ tidy:
 
 test:
 	go test ./...
+
+# 基于 internal/model 重新生成 internal/repository/query（gorm gen）
+gen:
+	go run ./cmd/gen

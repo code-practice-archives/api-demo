@@ -1,41 +1,44 @@
 package repository
 
 import (
+	"context"
 	"errors"
 
 	"github.com/code-practice-archives/api-demo/internal/model"
+	"github.com/code-practice-archives/api-demo/internal/repository/query"
 	"gorm.io/gorm"
 )
 
 var ErrUserNotFound = errors.New("user not found")
 
 type UserRepository struct {
-	db *gorm.DB
+	q *query.Query
 }
 
 func NewUserRepository(db *gorm.DB) *UserRepository {
-	return &UserRepository{db: db}
+	return &UserRepository{q: query.Use(db)}
 }
 
-func (r *UserRepository) Create(user *model.User) error {
-	return r.db.Create(user).Error
+func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
+	return r.q.User.WithContext(ctx).Create(user)
 }
 
-func (r *UserRepository) FindByUsername(username string) (*model.User, error) {
-	var user model.User
-	err := r.db.Where("username = ?", username).First(&user).Error
+func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {
+	u := r.q.User
+	user, err := u.WithContext(ctx).Where(u.Username.Eq(username)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &user, nil
+	return user, nil
 }
 
-func (r *UserRepository) ExistsByUsername(username string) (bool, error) {
-	var count int64
-	if err := r.db.Model(&model.User{}).Where("username = ?", username).Count(&count).Error; err != nil {
+func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
+	u := r.q.User
+	count, err := u.WithContext(ctx).Where(u.Username.Eq(username)).Count()
+	if err != nil {
 		return false, err
 	}
 	return count > 0, nil

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -41,7 +42,7 @@ type AuthResult struct {
 	User  *model.User `json:"user"`
 }
 
-func (s *AuthService) Register(in RegisterInput) (*AuthResult, error) {
+func (s *AuthService) Register(ctx context.Context, in RegisterInput) (*AuthResult, error) {
 	username := strings.TrimSpace(in.Username)
 	password := in.Password
 
@@ -49,7 +50,7 @@ func (s *AuthService) Register(in RegisterInput) (*AuthResult, error) {
 		return nil, err
 	}
 
-	exists, err := s.users.ExistsByUsername(username)
+	exists, err := s.users.ExistsByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +67,7 @@ func (s *AuthService) Register(in RegisterInput) (*AuthResult, error) {
 		Username: username,
 		Password: string(hash),
 	}
-	if err := s.users.Create(user); err != nil {
+	if err := s.users.Create(ctx, user); err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return nil, ErrUsernameTaken
 		}
@@ -81,7 +82,7 @@ func (s *AuthService) Register(in RegisterInput) (*AuthResult, error) {
 	return &AuthResult{Token: token, User: user}, nil
 }
 
-func (s *AuthService) Login(in LoginInput) (*AuthResult, error) {
+func (s *AuthService) Login(ctx context.Context, in LoginInput) (*AuthResult, error) {
 	username := strings.TrimSpace(in.Username)
 	password := in.Password
 
@@ -89,7 +90,7 @@ func (s *AuthService) Login(in LoginInput) (*AuthResult, error) {
 		return nil, err
 	}
 
-	user, err := s.users.FindByUsername(username)
+	user, err := s.users.FindByUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
 			return nil, ErrInvalidCredentials
