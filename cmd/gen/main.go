@@ -16,6 +16,9 @@ func main() {
 		FieldNullable: false,
 	})
 
-	g.ApplyBasic(model.User{})
+	g.ApplyBasic(
+		model.User{},
+		model.RefreshToken{},
+	)
 	g.Execute()
 }

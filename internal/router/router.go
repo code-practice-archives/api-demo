@@ -21,6 +21,8 @@ func New(h handler.Handlers, jwt *jwtx.Manager, log *logger.Logger) *gin.Engine 
 		auth := api.Group("/auth")
 		auth.POST("/register", h.Auth.Register)
 		auth.POST("/login", h.Auth.Login)
+		auth.POST("/refresh", h.Auth.Refresh)
+		auth.POST("/logout", h.Auth.Logout)
 
 		api.GET("/me", middleware.Auth(jwt), h.Auth.Me)
 	}

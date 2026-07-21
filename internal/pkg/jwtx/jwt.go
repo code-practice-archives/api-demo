@@ -17,12 +17,21 @@ type Claims struct {
 }
 
 type Manager struct {
-	secret []byte
-	expire time.Duration
+	secret        []byte
+	expire        time.Duration // access token TTL
+	refreshExpire time.Duration // opaque refresh token RTTL（由业务层落库）
 }
 
-func NewManager(secret string, expire time.Duration) *Manager {
-	return &Manager{secret: []byte(secret), expire: expire}
+func NewManager(secret string, expire, refreshExpire time.Duration) *Manager {
+	return &Manager{secret: []byte(secret), expire: expire, refreshExpire: refreshExpire}
+}
+
+func (m *Manager) AccessExpire() time.Duration {
+	return m.expire
+}
+
+func (m *Manager) RefreshExpire() time.Duration {
+	return m.refreshExpire
 }
 
 func (m *Manager) Sign(userID int64, username string) (string, error) {

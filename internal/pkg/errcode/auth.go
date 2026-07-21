@@ -27,4 +27,11 @@ var (
 		Message:    "unauthorized",
 		HTTPStatus: http.StatusUnauthorized,
 	}
+
+	// 无效 / 过期 / 已吊销的 refresh token 统一映射，避免泄露细节。
+	ErrInvalidRefreshToken = &Error{
+		Code:       "auth.invalid_refresh_token",
+		Message:    "invalid refresh token",
+		HTTPStatus: http.StatusUnauthorized,
+	}
 )

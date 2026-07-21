@@ -20,7 +20,8 @@ redis:
 
 jwt:
   secret: "dev-secret-change-me"
-  expire_hours: 24
+  expire_hours: 1          # access token TTL（小时），尽量短
+  refresh_expire_days: 7   # opaque refresh token RTTL（天）
 
 auth:
   max_retries: 5   # 连续登录失败次数上限

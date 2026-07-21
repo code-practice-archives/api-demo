@@ -21,10 +21,16 @@ type authRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type refreshRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
 type authResponse struct {
-	Token     string           `json:"token"`
-	TokenType string           `json:"token_type"`
-	User      authUserResponse `json:"user"`
+	Token        string           `json:"token"`
+	RefreshToken string           `json:"refresh_token"`
+	TokenType    string           `json:"token_type"`
+	ExpiresIn    int64            `json:"expires_in"`
+	User         authUserResponse `json:"user"`
 }
 
 type authUserResponse struct {
@@ -72,6 +78,41 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	response.Success(c, toAuthResponse(result))
 }
 
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	var req refreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrInvalidArgument)
+		return
+	}
+
+	result, err := h.svc.Auth.Refresh(c, service.RefreshInput{
+		RefreshToken: req.RefreshToken,
+	})
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, toAuthResponse(result))
+}
+
+func (h *AuthHandler) Logout(c *gin.Context) {
+	var req refreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrInvalidArgument)
+		return
+	}
+
+	if err := h.svc.Auth.Logout(c, service.LogoutInput{
+		RefreshToken: req.RefreshToken,
+	}); err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, nil)
+}
+
 func (h *AuthHandler) Me(c *gin.Context) {
 	userID, ok := c.Get(ctxkey.UserID)
 	if !ok {
@@ -100,8 +141,10 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 func toAuthResponse(result *service.AuthResult) authResponse {
 	return authResponse{
-		Token:     result.Token,
-		TokenType: "Bearer",
+		Token:        result.Token,
+		RefreshToken: result.RefreshToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    result.ExpiresIn,
 		User: authUserResponse{
 			ID:        result.User.Id,
 			Username:  result.User.Username,

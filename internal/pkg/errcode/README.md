@@ -22,6 +22,7 @@
 |------|------|
 | `auth.username_taken` | 用户名已被占用 |
 | `auth.invalid_credentials` | 账号或密码错误 |
+| `auth.invalid_refresh_token` | refresh token 无效 / 过期 / 已吊销 |
 | `common.invalid_argument` | 参数不合法 |
 | `common.internal` | 未识别的内部错误 |
 

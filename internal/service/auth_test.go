@@ -23,8 +23,11 @@ func newTestAuthService(t *testing.T) *AuthService {
 func newTestAuthServiceWithJail(t *testing.T, jail loginjail.Jail) *AuthService {
 	t.Helper()
 
-	repos := &repository.Repositories{User: repository.NewMockUserStore()}
-	jwtMgr := jwtx.NewManager("test-secret", time.Hour)
+	repos := &repository.Repositories{
+		User:         repository.NewMockUserStore(),
+		RefreshToken: repository.NewMockRefreshTokenStore(),
+	}
+	jwtMgr := jwtx.NewManager("test-secret", time.Hour, 7*24*time.Hour)
 	return NewAuthService(repos, jwtMgr, jail, logger.Nop())
 }
 
@@ -36,8 +39,11 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
-	if reg.Token == "" {
-		t.Fatal("expected non-empty token")
+	if reg.Token == "" || reg.RefreshToken == "" {
+		t.Fatal("expected non-empty access and refresh tokens")
+	}
+	if reg.ExpiresIn != int64(time.Hour/time.Second) {
+		t.Fatalf("expires_in = %d, want %d", reg.ExpiresIn, int64(time.Hour/time.Second))
 	}
 	if reg.User == nil || reg.User.Username != "alice" || reg.User.Id == 0 {
 		t.Fatalf("unexpected user: %+v", reg.User)
@@ -54,8 +60,8 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("login: %v", err)
 	}
-	if login.Token == "" {
-		t.Fatal("expected non-empty login token")
+	if login.Token == "" || login.RefreshToken == "" {
+		t.Fatal("expected non-empty login access and refresh tokens")
 	}
 }
 
@@ -110,7 +116,7 @@ func TestAuthService_Register(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if got == nil || got.User == nil || got.Token == "" {
+			if got == nil || got.User == nil || got.Token == "" || got.RefreshToken == "" {
 				t.Fatalf("unexpected result: %+v", got)
 			}
 		})
@@ -185,10 +191,106 @@ func TestAuthService_Login(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if got == nil || got.Token == "" {
+			if got == nil || got.Token == "" || got.RefreshToken == "" {
 				t.Fatalf("unexpected result: %+v", got)
 			}
 		})
+	}
+}
+
+func TestAuthService_Refresh(t *testing.T) {
+	tests := []struct {
+		name    string
+		setup   func(t *testing.T, svc *AuthService) RefreshInput
+		wantErr error
+	}{
+		{
+			name: "success rotates refresh token",
+			setup: func(t *testing.T, svc *AuthService) RefreshInput {
+				t.Helper()
+				reg, err := svc.Register(context.Background(), RegisterInput{Username: "refresh_ok", Password: "secret123"})
+				if err != nil {
+					t.Fatalf("seed: %v", err)
+				}
+				return RefreshInput{RefreshToken: reg.RefreshToken}
+			},
+		},
+		{
+			name: "reuse after rotate fails",
+			setup: func(t *testing.T, svc *AuthService) RefreshInput {
+				t.Helper()
+				reg, err := svc.Register(context.Background(), RegisterInput{Username: "refresh_reuse", Password: "secret123"})
+				if err != nil {
+					t.Fatalf("seed: %v", err)
+				}
+				if _, err := svc.Refresh(context.Background(), RefreshInput{RefreshToken: reg.RefreshToken}); err != nil {
+					t.Fatalf("first refresh: %v", err)
+				}
+				return RefreshInput{RefreshToken: reg.RefreshToken}
+			},
+			wantErr: errcode.ErrInvalidRefreshToken,
+		},
+		{
+			name: "unknown token",
+			setup: func(t *testing.T, svc *AuthService) RefreshInput {
+				t.Helper()
+				return RefreshInput{RefreshToken: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"}
+			},
+			wantErr: errcode.ErrInvalidRefreshToken,
+		},
+		{
+			name: "empty token",
+			setup: func(t *testing.T, svc *AuthService) RefreshInput {
+				t.Helper()
+				return RefreshInput{RefreshToken: ""}
+			},
+			wantErr: errcode.ErrInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := newTestAuthService(t)
+			in := tt.setup(t, svc)
+
+			got, err := svc.Refresh(context.Background(), in)
+			if tt.wantErr != nil {
+				if !errors.Is(err, tt.wantErr) {
+					t.Fatalf("error = %v, want %v", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got.Token == "" || got.RefreshToken == "" || got.RefreshToken == in.RefreshToken {
+				t.Fatalf("expected new token pair, got %+v", got)
+			}
+		})
+	}
+}
+
+func TestAuthService_Logout(t *testing.T) {
+	svc := newTestAuthService(t)
+	ctx := context.Background()
+
+	reg, err := svc.Register(ctx, RegisterInput{Username: "logout_user", Password: "secret123"})
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	if err := svc.Logout(ctx, LogoutInput{RefreshToken: reg.RefreshToken}); err != nil {
+		t.Fatalf("logout: %v", err)
+	}
+
+	_, err = svc.Refresh(ctx, RefreshInput{RefreshToken: reg.RefreshToken})
+	if !errors.Is(err, errcode.ErrInvalidRefreshToken) {
+		t.Fatalf("refresh after logout: %v, want invalid refresh token", err)
+	}
+
+	// 幂等：再次 logout 不报错
+	if err := svc.Logout(ctx, LogoutInput{RefreshToken: reg.RefreshToken}); err != nil {
+		t.Fatalf("logout again: %v", err)
 	}
 }
 

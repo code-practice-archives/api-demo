@@ -15,12 +15,21 @@ type UserStore interface {
 	ExistsByUsername(ctx context.Context, username string) (bool, error)
 }
 
+// RefreshTokenStore opaque refresh token 持久化接口。
+type RefreshTokenStore interface {
+	Create(ctx context.Context, token *model.RefreshToken) error
+	FindByTokenHash(ctx context.Context, hash string) (*model.RefreshToken, error)
+	Revoke(ctx context.Context, id int64, revokedAt int64) error
+}
+
 type Repositories struct {
-	User UserStore
+	User         UserStore
+	RefreshToken RefreshTokenStore
 }
 
 func New(db *gorm.DB) *Repositories {
 	return &Repositories{
-		User: NewUserRepository(db),
+		User:         NewUserRepository(db),
+		RefreshToken: NewRefreshTokenRepository(db),
 	}
 }

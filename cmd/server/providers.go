@@ -30,7 +30,7 @@ func provideRedis(cfg redisx.Config) (*redis.Client, func(), error) {
 }
 
 func provideJWTManager(cfg jwtx.Config) *jwtx.Manager {
-	return jwtx.NewManager(cfg.Secret, cfg.Expire())
+	return jwtx.NewManager(cfg.Secret, cfg.Expire(), cfg.RefreshExpire())
 }
 
 func provideLoginJail(cfg loginjail.Config, rdb *redis.Client) (loginjail.Jail, error) {
