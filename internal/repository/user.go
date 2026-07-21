@@ -25,6 +25,11 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 	return u.WithContext(ctx).Where(u.Username.Eq(username)).First()
 }
 
+func (r *UserRepository) FindByID(ctx context.Context, id int64) (*model.User, error) {
+	u := r.q.User
+	return u.WithContext(ctx).Where(u.Id.Eq(id)).First()
+}
+
 func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
 	u := r.q.User
 	count, err := u.WithContext(ctx).Where(u.Username.Eq(username)).Count()

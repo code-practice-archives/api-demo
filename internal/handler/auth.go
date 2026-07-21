@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/code-practice-archives/api-demo/internal/pkg/ctxkey"
 	"github.com/code-practice-archives/api-demo/internal/pkg/errcode"
 	"github.com/code-practice-archives/api-demo/internal/pkg/response"
 	"github.com/code-practice-archives/api-demo/internal/service"
@@ -21,8 +22,9 @@ type authRequest struct {
 }
 
 type authResponse struct {
-	Token string           `json:"token"`
-	User  authUserResponse `json:"user"`
+	Token     string           `json:"token"`
+	TokenType string           `json:"token_type"`
+	User      authUserResponse `json:"user"`
 }
 
 type authUserResponse struct {
@@ -70,9 +72,36 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	response.Success(c, toAuthResponse(result))
 }
 
+func (h *AuthHandler) Me(c *gin.Context) {
+	userID, ok := c.Get(ctxkey.UserID)
+	if !ok {
+		response.Error(c, errcode.ErrUnauthorized)
+		return
+	}
+	id, ok := userID.(int64)
+	if !ok {
+		response.Error(c, errcode.ErrUnauthorized)
+		return
+	}
+
+	user, err := h.svc.Auth.Me(c, id)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, authUserResponse{
+		ID:        user.Id,
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	})
+}
+
 func toAuthResponse(result *service.AuthResult) authResponse {
 	return authResponse{
-		Token: result.Token,
+		Token:     result.Token,
+		TokenType: "Bearer",
 		User: authUserResponse{
 			ID:        result.User.Id,
 			Username:  result.User.Username,

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/code-practice-archives/api-demo/internal/config"
 	"github.com/code-practice-archives/api-demo/migrations"
 	"github.com/glebarez/sqlite"
 	mysqldriver "github.com/go-sql-driver/mysql"
@@ -17,15 +16,15 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// Open 按驱动打开数据库，启动时自动建库（MySQL）并迁移表结构。
-func Open(driver, dsn string) (*gorm.DB, error) {
-	if driver == config.DBDriverMySQL {
-		if err := ensureMySQLDatabase(dsn); err != nil {
+// Open 按配置打开数据库，启动时自动建库（MySQL）并迁移表结构。
+func Open(cfg Config) (*gorm.DB, error) {
+	if cfg.Driver == DriverMySQL {
+		if err := ensureMySQLDatabase(cfg.DSN); err != nil {
 			return nil, err
 		}
 	}
 
-	dialector, err := newDialector(driver, dsn)
+	dialector, err := newDialector(cfg.Driver, cfg.DSN)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +37,7 @@ func Open(driver, dsn string) (*gorm.DB, error) {
 	}
 
 	// SQLite 内存库每个连接是独立库，限制为单连接避免迁移丢失。
-	if driver == config.DBDriverSQLite && isMemoryDSN(dsn) {
+	if cfg.Driver == DriverSQLite && isMemoryDSN(cfg.DSN) {
 		sqlDB, err := db.DB()
 		if err != nil {
 			return nil, fmt.Errorf("get sql db: %w", err)
@@ -55,7 +54,7 @@ func Open(driver, dsn string) (*gorm.DB, error) {
 
 // OpenSQLite 打开 SQLite，供测试使用。dsn 传 ":memory:" 即可。
 func OpenSQLite(dsn string) (*gorm.DB, error) {
-	return Open(config.DBDriverSQLite, dsn)
+	return Open(Config{Driver: DriverSQLite, DSN: dsn})
 }
 
 func migrate(db *gorm.DB) error {
@@ -103,12 +102,12 @@ func ensureMySQLDatabase(dsn string) error {
 
 func newDialector(driver, dsn string) (gorm.Dialector, error) {
 	switch driver {
-	case config.DBDriverMySQL:
+	case DriverMySQL:
 		if dsn == "" {
 			return nil, fmt.Errorf("mysql dsn is required")
 		}
 		return mysql.Open(dsn), nil
-	case config.DBDriverSQLite:
+	case DriverSQLite:
 		if dsn == "" {
 			return nil, fmt.Errorf("sqlite dsn is required")
 		}

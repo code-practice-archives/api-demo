@@ -15,4 +15,16 @@ var (
 		Message:    "username or password is incorrect",
 		HTTPStatus: http.StatusUnauthorized,
 	}
+
+	ErrAccountLocked = &Error{
+		Code:       "auth.account_locked",
+		Message:    "too many failed login attempts, try again later",
+		HTTPStatus: http.StatusTooManyRequests,
+	}
+
+	ErrUnauthorized = &Error{
+		Code:       "auth.unauthorized",
+		Message:    "unauthorized",
+		HTTPStatus: http.StatusUnauthorized,
+	}
 )

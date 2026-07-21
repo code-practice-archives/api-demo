@@ -14,6 +14,16 @@ db:
   # 密码含 @ # 等特殊字符时需 URL 编码，例如 @ -> %40
   dsn: "root:root@tcp(127.0.0.1:3306)/api_demo?charset=utf8mb4&parseTime=True&loc=Local"
 
+redis:
+  addr: "127.0.0.1:6379"
+  password: ""
+  db: 0
+
 jwt:
   secret: "dev-secret-change-me"
   expire_hours: 24
+
+auth:
+  max_retries: 5   # 连续登录失败次数上限
+  lock_minutes: 15 # 达到上限后锁定分钟数
+  store: redis     # memory（单机）| redis（分布式共享）

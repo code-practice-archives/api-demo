@@ -5,11 +5,10 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/code-practice-archives/api-demo/internal/pkg/ctxkey"
 	"github.com/code-practice-archives/api-demo/internal/pkg/errcode"
 	"github.com/gin-gonic/gin"
 )
-
-const TraceIDKey = "trace_id"
 
 type Response struct {
 	Code    string `json:"code,omitempty"`
@@ -46,7 +45,7 @@ func writeJSON(w http.ResponseWriter, status int, resp Response) {
 }
 
 func traceID(c *gin.Context) string {
-	if v, ok := c.Get(TraceIDKey); ok {
+	if v, ok := c.Get(ctxkey.TraceID); ok {
 		if s, ok := v.(string); ok {
 			return s
 		}

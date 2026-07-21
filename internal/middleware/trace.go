@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"github.com/code-practice-archives/api-demo/internal/pkg/ctxkey"
 	"github.com/code-practice-archives/api-demo/internal/pkg/logger"
-	"github.com/code-practice-archives/api-demo/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -12,7 +12,7 @@ import (
 const headerTraceID = "X-Trace-ID"
 
 // TraceID 注入请求级追踪 ID：写入 Gin Context、Request.Context 与响应头。
-// Request.Context 中的值可供 logger.FromContext 自动携带到业务日志。
+// Request.Context 中的值可供 logger.WithContext 自动携带到业务日志。
 func TraceID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		traceID := c.GetHeader(headerTraceID)
@@ -21,7 +21,7 @@ func TraceID() gin.HandlerFunc {
 			traceID = uuid.NewString()
 		}
 
-		c.Set(response.TraceIDKey, traceID)
+		c.Set(ctxkey.TraceID, traceID)
 		c.Request = c.Request.WithContext(logger.WithTraceID(c.Request.Context(), traceID))
 		c.Writer.Header().Set(headerTraceID, traceID)
 		c.Next()

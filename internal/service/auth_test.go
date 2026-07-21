@@ -12,10 +12,16 @@ import (
 	"github.com/code-practice-archives/api-demo/internal/pkg/errcode"
 	"github.com/code-practice-archives/api-demo/internal/pkg/jwtx"
 	"github.com/code-practice-archives/api-demo/internal/pkg/logger"
+	"github.com/code-practice-archives/api-demo/internal/pkg/loginjail"
 	"github.com/code-practice-archives/api-demo/internal/repository"
 )
 
 func newTestAuthService(t *testing.T) *AuthService {
+	t.Helper()
+	return newTestAuthServiceWithJail(t, loginjail.NewMemory(5, 15*time.Minute))
+}
+
+func newTestAuthServiceWithJail(t *testing.T, jail loginjail.Jail) *AuthService {
 	t.Helper()
 
 	db, err := database.OpenSQLite(":memory:")
@@ -25,7 +31,7 @@ func newTestAuthService(t *testing.T) *AuthService {
 
 	repos := repository.New(db)
 	jwtMgr := jwtx.NewManager("test-secret", time.Hour)
-	return NewAuthService(repos, jwtMgr, logger.Nop())
+	return NewAuthService(repos, jwtMgr, jail, logger.Nop())
 }
 
 func TestAuthService_RegisterAndLogin(t *testing.T) {
@@ -178,5 +184,83 @@ func TestAuthService_Login(t *testing.T) {
 				t.Fatalf("unexpected result: %+v", got)
 			}
 		})
+	}
+}
+
+func TestAuthService_LoginJail(t *testing.T) {
+	ctx := context.Background()
+	jail := loginjail.NewMemory(3, 15*time.Minute)
+	svc := newTestAuthServiceWithJail(t, jail)
+
+	if _, err := svc.Register(ctx, RegisterInput{Username: "dave", Password: "secret123"}); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+
+	for i := 0; i < 2; i++ {
+		_, err := svc.Login(ctx, LoginInput{Username: "dave", Password: "wrongpass"})
+		if !errors.Is(err, errcode.ErrInvalidCredentials) {
+			t.Fatalf("fail %d: error = %v, want invalid credentials", i+1, err)
+		}
+	}
+
+	_, err := svc.Login(ctx, LoginInput{Username: "dave", Password: "wrongpass"})
+	if !errors.Is(err, errcode.ErrAccountLocked) {
+		t.Fatalf("3rd fail: error = %v, want account locked", err)
+	}
+
+	// 锁定期间即使密码正确也拒绝
+	_, err = svc.Login(ctx, LoginInput{Username: "dave", Password: "secret123"})
+	if !errors.Is(err, errcode.ErrAccountLocked) {
+		t.Fatalf("locked login: error = %v, want account locked", err)
+	}
+}
+
+func TestAuthService_LoginJailResetOnSuccess(t *testing.T) {
+	ctx := context.Background()
+	jail := loginjail.NewMemory(3, 15*time.Minute)
+	svc := newTestAuthServiceWithJail(t, jail)
+
+	if _, err := svc.Register(ctx, RegisterInput{Username: "erin", Password: "secret123"}); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+
+	_, err := svc.Login(ctx, LoginInput{Username: "erin", Password: "wrongpass"})
+	if !errors.Is(err, errcode.ErrInvalidCredentials) {
+		t.Fatalf("fail: %v", err)
+	}
+
+	if _, err := svc.Login(ctx, LoginInput{Username: "erin", Password: "secret123"}); err != nil {
+		t.Fatalf("success login should reset: %v", err)
+	}
+
+	// 重置后可再失败 maxRetries-1 次而不锁定
+	for i := 0; i < 2; i++ {
+		_, err := svc.Login(ctx, LoginInput{Username: "erin", Password: "wrongpass"})
+		if !errors.Is(err, errcode.ErrInvalidCredentials) {
+			t.Fatalf("fail %d after reset: error = %v, want invalid credentials", i+1, err)
+		}
+	}
+}
+
+func TestAuthService_Me(t *testing.T) {
+	svc := newTestAuthService(t)
+	ctx := context.Background()
+
+	reg, err := svc.Register(ctx, RegisterInput{Username: "frank", Password: "secret123"})
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	user, err := svc.Me(ctx, reg.User.Id)
+	if err != nil {
+		t.Fatalf("me: %v", err)
+	}
+	if user.Username != "frank" {
+		t.Fatalf("username = %q, want frank", user.Username)
+	}
+
+	_, err = svc.Me(ctx, 99999)
+	if !errors.Is(err, errcode.ErrUnauthorized) {
+		t.Fatalf("error = %v, want unauthorized", err)
 	}
 }

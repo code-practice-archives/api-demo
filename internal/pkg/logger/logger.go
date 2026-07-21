@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/code-practice-archives/api-demo/internal/config"
-	"github.com/code-practice-archives/api-demo/internal/pkg/response"
+	"github.com/code-practice-archives/api-demo/internal/pkg/ctxkey"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -18,7 +17,7 @@ type Logger struct {
 }
 
 // New 基于配置创建 Logger：同时写入控制台与按大小/天数轮转的日志文件。
-func New(cfg config.LogConfig) (*Logger, error) {
+func New(cfg Config) (*Logger, error) {
 	level, err := parseLevel(cfg.Level)
 	if err != nil {
 		return nil, err
@@ -62,8 +61,8 @@ func (l *Logger) WithContext(ctx context.Context) *zap.Logger {
 	if ctx == nil {
 		return l.base
 	}
-	if tid, ok := ctx.Value(response.TraceIDKey).(string); ok && tid != "" {
-		return l.base.With(zap.String(response.TraceIDKey, tid))
+	if tid, ok := ctx.Value(ctxkey.TraceID).(string); ok && tid != "" {
+		return l.base.With(zap.String(ctxkey.TraceID, tid))
 	}
 	return l.base
 }
@@ -78,7 +77,7 @@ func (l *Logger) Sync() error {
 
 // WithTraceID 将 trace_id 写入 context，供后续 WithContext 读取。
 func WithTraceID(ctx context.Context, traceID string) context.Context {
-	return context.WithValue(ctx, response.TraceIDKey, traceID)
+	return context.WithValue(ctx, ctxkey.TraceID, traceID)
 }
 
 func parseLevel(level string) (zapcore.Level, error) {
