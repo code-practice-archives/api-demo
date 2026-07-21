@@ -3,12 +3,17 @@ package router
 import (
 	"github.com/code-practice-archives/api-demo/internal/handler"
 	"github.com/code-practice-archives/api-demo/internal/middleware"
+	"github.com/code-practice-archives/api-demo/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
-func New(h handler.Handlers) *gin.Engine {
-	r := gin.Default()
-	r.Use(middleware.TraceID())
+func New(h handler.Handlers, log *logger.Logger) *gin.Engine {
+	r := gin.New()
+	r.Use(
+		gin.Recovery(),
+		middleware.TraceID(),
+		middleware.AccessLog(log),
+	)
 
 	api := r.Group("/api/v1")
 	{

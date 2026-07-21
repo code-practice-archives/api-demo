@@ -11,6 +11,7 @@ import (
 
 	"github.com/code-practice-archives/api-demo/internal/config"
 	"github.com/code-practice-archives/api-demo/internal/server"
+	"go.uber.org/zap"
 )
 
 // main 启动 HTTP 服务，并在收到退出信号后执行优雅关闭。
@@ -27,12 +28,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("server init failed: %v", err)
 	}
+	zlog := srv.Log()
 
 	// 1. 在独立 goroutine 中启动服务，避免 ListenAndServe 阻塞主流程，
 	//    使主 goroutine 能继续监听系统信号。
 	go func() {
 		if err := srv.Start(); err != nil {
-			log.Fatalf("server start failed: %v", err)
+			zlog.WithContext(context.Background()).Fatal("server start failed", zap.Error(err))
 		}
 	}()
 
@@ -42,15 +44,15 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("shutdown signal received")
+	zlog.WithContext(context.Background()).Info("shutdown signal received")
 
 	// 3. 限时优雅关闭：给进行中的请求最多 10 秒完成，超时则强制退出。
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Stop(ctx); err != nil {
-		log.Fatalf("server shutdown failed: %v", err)
+		zlog.WithContext(ctx).Fatal("server shutdown failed", zap.Error(err))
 	}
 
-	log.Println("server exited")
+	zlog.WithContext(ctx).Info("server exited")
 }

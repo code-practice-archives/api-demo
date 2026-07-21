@@ -11,6 +11,7 @@ import (
 	"github.com/code-practice-archives/api-demo/internal/pkg/database"
 	"github.com/code-practice-archives/api-demo/internal/pkg/errcode"
 	"github.com/code-practice-archives/api-demo/internal/pkg/jwtx"
+	"github.com/code-practice-archives/api-demo/internal/pkg/logger"
 	"github.com/code-practice-archives/api-demo/internal/repository"
 )
 
@@ -24,7 +25,7 @@ func newTestAuthService(t *testing.T) *AuthService {
 
 	repos := repository.New(db)
 	jwtMgr := jwtx.NewManager("test-secret", time.Hour)
-	return NewAuthService(repos, jwtMgr)
+	return NewAuthService(repos, jwtMgr, logger.Nop())
 }
 
 func TestAuthService_RegisterAndLogin(t *testing.T) {

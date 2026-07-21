@@ -1,6 +1,14 @@
 server:
   addr: ":8080"
 
+log:
+  level: info
+  filename: logs/app.log
+  max_size: 100      # MB
+  max_backups: 7
+  max_age: 30        # days
+  compress: true
+
 db:
   driver: mysql # mysql | sqlite
   # 密码含 @ # 等特殊字符时需 URL 编码，例如 @ -> %40

@@ -13,6 +13,7 @@ type Config struct {
 	Server ServerConfig `mapstructure:"server"`
 	DB     DBConfig     `mapstructure:"db"`
 	JWT    JWTConfig    `mapstructure:"jwt"`
+	Log    LogConfig    `mapstructure:"log"`
 }
 
 // Load 使用 viper 读取 YAML 配置。path 为空时使用 DefaultConfigFile。
