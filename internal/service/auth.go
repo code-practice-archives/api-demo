@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/code-practice-archives/api-demo/internal/model"
@@ -10,7 +11,6 @@ import (
 	"github.com/code-practice-archives/api-demo/internal/pkg/jwtx"
 	"github.com/code-practice-archives/api-demo/internal/pkg/logger"
 	"github.com/code-practice-archives/api-demo/internal/pkg/loginjail"
-	"github.com/code-practice-archives/api-demo/internal/pkg/validator"
 	"github.com/code-practice-archives/api-demo/internal/repository"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -31,19 +31,41 @@ func NewAuthService(repos *repository.Repositories, jwt *jwtx.Manager, jail logi
 	return &AuthService{repos: repos, jwt: jwt, jail: jail, log: log.Named("auth")}
 }
 
-type RegisterInput struct {
-	Username string `validate:"required,min=3,max=64"`
-	Password string `validate:"required,min=6,max=72"`
-}
-
-type LoginInput struct {
-	Username string `validate:"required,min=3,max=64"`
-	Password string `validate:"required,min=6,max=72"`
-}
-
 type AuthResult struct {
 	Token string
 	User  *model.User
+}
+
+type RegisterInput struct {
+	Username string
+	Password string
+}
+
+const (
+	usernameMinLen = 3
+	usernameMaxLen = 64
+	passwordMinLen = 6
+	passwordMaxLen = 72 // bcrypt 上限
+)
+
+// validateRegisterInput 注册策略：用户名/密码长度约束。登录不走这套规则。
+func validateRegisterInput(username, password string) error {
+	switch {
+	case username == "":
+		return errcode.ErrInvalidArgument.WithMessage("username is required")
+	case len(username) < usernameMinLen:
+		return errcode.ErrInvalidArgument.WithMessage(fmt.Sprintf("username must be at least %d characters", usernameMinLen))
+	case len(username) > usernameMaxLen:
+		return errcode.ErrInvalidArgument.WithMessage(fmt.Sprintf("username must be at most %d characters", usernameMaxLen))
+	case password == "":
+		return errcode.ErrInvalidArgument.WithMessage("password is required")
+	case len(password) < passwordMinLen:
+		return errcode.ErrInvalidArgument.WithMessage(fmt.Sprintf("password must be at least %d characters", passwordMinLen))
+	case len(password) > passwordMaxLen:
+		return errcode.ErrInvalidArgument.WithMessage(fmt.Sprintf("password must be at most %d characters", passwordMaxLen))
+	default:
+		return nil
+	}
 }
 
 // Register 注册新用户并签发 JWT。密码仅存 bcrypt 哈希；并发下依赖唯一约束兜底重复用户名。
@@ -52,7 +74,7 @@ func (s *AuthService) Register(ctx context.Context, in RegisterInput) (*AuthResu
 	log := s.log.WithContext(ctx).With(zap.String("username", in.Username))
 
 	// 1. 校验输入
-	if err := validator.Struct(&in); err != nil {
+	if err := validateRegisterInput(in.Username, in.Password); err != nil {
 		log.Warn("register validation failed", zap.Error(err))
 		return nil, err
 	}
@@ -100,13 +122,30 @@ func (s *AuthService) Register(ctx context.Context, in RegisterInput) (*AuthResu
 	return &AuthResult{Token: token, User: user}, nil
 }
 
+type LoginInput struct {
+	Username string
+	Password string
+}
+
+// validateLoginInput 登录只要求凭证非空；长短是否合法交给验密结果，避免泄露注册策略。
+func validateLoginInput(username, password string) error {
+	switch {
+	case username == "":
+		return errcode.ErrInvalidArgument.WithMessage("username is required")
+	case password == "":
+		return errcode.ErrInvalidArgument.WithMessage("password is required")
+	default:
+		return nil
+	}
+}
+
 // Login 校验凭证并签发 JWT。失败统一返回凭证错误；连续失败由 jail 锁定以防爆破。
 func (s *AuthService) Login(ctx context.Context, in LoginInput) (*AuthResult, error) {
 	in.Username = strings.TrimSpace(in.Username)
 	log := s.log.WithContext(ctx).With(zap.String("username", in.Username))
 
 	// 1. 校验输入
-	if err := validator.Struct(&in); err != nil {
+	if err := validateLoginInput(in.Username, in.Password); err != nil {
 		log.Warn("login validation failed", zap.Error(err))
 		return nil, err
 	}

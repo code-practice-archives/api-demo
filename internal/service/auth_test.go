@@ -151,9 +151,20 @@ func TestAuthService_Login(t *testing.T) {
 			wantErr: errcode.ErrInvalidCredentials,
 		},
 		{
-			name:    "invalid input",
-			in:      LoginInput{Username: "ab", Password: "123"},
+			name:    "empty username",
+			in:      LoginInput{Username: "", Password: "secret123"},
 			wantErr: errcode.ErrInvalidArgument,
+		},
+		{
+			name:    "empty password",
+			in:      LoginInput{Username: "carol", Password: ""},
+			wantErr: errcode.ErrInvalidArgument,
+		},
+		{
+			// 短用户名/密码不是登录参数错误，走凭证校验失败
+			name:    "short credentials treated as invalid credentials",
+			in:      LoginInput{Username: "ab", Password: "123"},
+			wantErr: errcode.ErrInvalidCredentials,
 		},
 	}
 
