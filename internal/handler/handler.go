@@ -6,8 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Register(r *gin.Engine) {
+func NewRouter() *gin.Engine {
+	r := gin.Default()
 	r.GET("/ping", Ping)
+	return r
 }
 
 func Ping(c *gin.Context) {
