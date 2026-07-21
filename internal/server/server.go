@@ -6,20 +6,38 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/code-practice-archives/api-demo/internal/config"
 	"github.com/code-practice-archives/api-demo/internal/handler"
+	"github.com/code-practice-archives/api-demo/internal/pkg/database"
+	"github.com/code-practice-archives/api-demo/internal/pkg/jwtx"
+	"github.com/code-practice-archives/api-demo/internal/repository"
+	"github.com/code-practice-archives/api-demo/internal/router"
+	"github.com/code-practice-archives/api-demo/internal/service"
 )
 
 type Server struct {
 	httpServer *http.Server
 }
 
-func New() *Server {
+func New(cfg *config.Config) (*Server, error) {
+	db, err := database.Open(cfg.DB.Driver, cfg.DB.DSN)
+	if err != nil {
+		return nil, err
+	}
+
+	users := repository.NewUserRepository(db)
+	jwtMgr := jwtx.NewManager(cfg.JWT.Secret, cfg.JWT.Expire())
+	authSvc := service.NewAuthService(users, jwtMgr)
+	authH := handler.NewAuthHandler(authSvc)
+
 	return &Server{
 		httpServer: &http.Server{
-			Addr:    ":8080",
-			Handler: handler.NewRouter(),
+			Addr: cfg.Server.Addr,
+			Handler: router.New(handler.Handlers{
+				Auth: authH,
+			}),
 		},
-	}
+	}, nil
 }
 
 func (s *Server) Start() error {

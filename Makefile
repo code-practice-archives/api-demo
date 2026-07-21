@@ -1,4 +1,4 @@
-.PHONY: run build tidy
+.PHONY: run build tidy test init-config
 
 run:
 	go run ./cmd/server
@@ -8,3 +8,6 @@ build:
 
 tidy:
 	go mod tidy
+
+test:
+	go test ./...

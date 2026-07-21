@@ -2,18 +2,31 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/code-practice-archives/api-demo/internal/config"
 	"github.com/code-practice-archives/api-demo/internal/server"
 )
 
 // main 启动 HTTP 服务，并在收到退出信号后执行优雅关闭。
 func main() {
-	srv := server.New()
+	configPath := flag.String("config", config.DefaultConfigFile, "path to config file")
+	flag.Parse()
+
+	cfg, err := config.Load(*configPath)
+	if err != nil {
+		log.Fatalf("load config failed: %v", err)
+	}
+
+	srv, err := server.New(cfg)
+	if err != nil {
+		log.Fatalf("server init failed: %v", err)
+	}
 
 	// 1. 在独立 goroutine 中启动服务，避免 ListenAndServe 阻塞主流程，
 	//    使主 goroutine 能继续监听系统信号。
