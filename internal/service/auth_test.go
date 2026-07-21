@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/code-practice-archives/api-demo/internal/pkg/database"
 	"github.com/code-practice-archives/api-demo/internal/pkg/errcode"
 	"github.com/code-practice-archives/api-demo/internal/pkg/jwtx"
 	"github.com/code-practice-archives/api-demo/internal/pkg/logger"
@@ -24,12 +23,7 @@ func newTestAuthService(t *testing.T) *AuthService {
 func newTestAuthServiceWithJail(t *testing.T, jail loginjail.Jail) *AuthService {
 	t.Helper()
 
-	db, err := database.OpenSQLite(":memory:")
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
-
-	repos := repository.New(db)
+	repos := &repository.Repositories{User: repository.NewMockUserStore()}
 	jwtMgr := jwtx.NewManager("test-secret", time.Hour)
 	return NewAuthService(repos, jwtMgr, jail, logger.Nop())
 }

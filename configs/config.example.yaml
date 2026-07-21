@@ -10,7 +10,6 @@ log:
   compress: true
 
 db:
-  driver: mysql # mysql | sqlite
   # 密码含 @ # 等特殊字符时需 URL 编码，例如 @ -> %40
   dsn: "root:root@tcp(127.0.0.1:3306)/api_demo?charset=utf8mb4&parseTime=True&loc=Local"
 

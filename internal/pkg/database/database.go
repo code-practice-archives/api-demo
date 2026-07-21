@@ -6,12 +6,9 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/code-practice-archives/api-demo/migrations"
-	"github.com/glebarez/sqlite"
 	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/pressly/goose/v3"
 	"gorm.io/driver/mysql"
@@ -19,33 +16,17 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// Open 按配置打开数据库，启动时自动建库（MySQL）并迁移表结构。
+// Open 按配置打开 MySQL，启动时自动建库并迁移表结构。
 func Open(cfg Config) (*gorm.DB, error) {
-	if cfg.Driver == DriverMySQL {
-		if err := ensureMySQLDatabase(cfg.DSN); err != nil {
-			return nil, err
-		}
-	}
-
-	dialector, err := newDialector(cfg.Driver, cfg.DSN)
-	if err != nil {
+	if err := ensureMySQLDatabase(cfg.DSN); err != nil {
 		return nil, err
 	}
 
-	db, err := gorm.Open(dialector, &gorm.Config{
+	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Warn),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
-	}
-
-	// SQLite 内存库每个连接是独立库，限制为单连接避免迁移丢失。
-	if cfg.Driver == DriverSQLite && isMemoryDSN(cfg.DSN) {
-		sqlDB, err := db.DB()
-		if err != nil {
-			return nil, fmt.Errorf("get sql db: %w", err)
-		}
-		sqlDB.SetMaxOpenConns(1)
 	}
 
 	if err := migrate(db); err != nil {
@@ -55,28 +36,18 @@ func Open(cfg Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// OpenSQLite 打开 SQLite，供测试使用。dsn 传 ":memory:" 即可。
-func OpenSQLite(dsn string) (*gorm.DB, error) {
-	return Open(Config{Driver: DriverSQLite, DSN: dsn})
-}
-
 func migrate(db *gorm.DB) error {
 	sqlDB, err := db.DB()
 	if err != nil {
 		return fmt.Errorf("get sql db: %w", err)
 	}
 
-	dialect, dir, err := gooseDialect(db.Dialector.Name())
+	fsys, err := fs.Sub(migrations.FS, "mysql")
 	if err != nil {
-		return err
+		return fmt.Errorf("migrations fs: %w", err)
 	}
 
-	fsys, err := fs.Sub(migrations.FS, dir)
-	if err != nil {
-		return fmt.Errorf("migrations fs %q: %w", dir, err)
-	}
-
-	provider, err := goose.NewProvider(dialect, sqlDB, fsys)
+	provider, err := goose.NewProvider(goose.DialectMySQL, sqlDB, fsys)
 	if err != nil {
 		return fmt.Errorf("goose provider: %w", err)
 	}
@@ -87,17 +58,6 @@ func migrate(db *gorm.DB) error {
 
 	log.Println("database tables migrated")
 	return nil
-}
-
-func gooseDialect(name string) (goose.Dialect, string, error) {
-	switch name {
-	case "mysql":
-		return goose.DialectMySQL, "mysql", nil
-	case "sqlite":
-		return goose.DialectSQLite3, "sqlite", nil
-	default:
-		return "", "", fmt.Errorf("unsupported goose dialect %q", name)
-	}
 }
 
 // ensureMySQLDatabase 在连接业务库前创建数据库（若不存在）。
@@ -129,42 +89,4 @@ func ensureMySQLDatabase(dsn string) error {
 
 	log.Printf("database %q ensured", dbName)
 	return nil
-}
-
-func newDialector(driver, dsn string) (gorm.Dialector, error) {
-	switch driver {
-	case DriverMySQL:
-		if dsn == "" {
-			return nil, fmt.Errorf("mysql dsn is required")
-		}
-		return mysql.Open(dsn), nil
-	case DriverSQLite:
-		if dsn == "" {
-			return nil, fmt.Errorf("sqlite dsn is required")
-		}
-		if err := prepareSQLiteDSN(dsn); err != nil {
-			return nil, err
-		}
-		return sqlite.Open(dsn), nil
-	default:
-		return nil, fmt.Errorf("unsupported db driver %q (want mysql or sqlite)", driver)
-	}
-}
-
-func prepareSQLiteDSN(dsn string) error {
-	if isMemoryDSN(dsn) {
-		return nil
-	}
-	dir := filepath.Dir(dsn)
-	if dir == "." || dir == "" {
-		return nil
-	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("create db dir: %w", err)
-	}
-	return nil
-}
-
-func isMemoryDSN(dsn string) bool {
-	return dsn == ":memory:" || strings.Contains(dsn, "mode=memory")
 }

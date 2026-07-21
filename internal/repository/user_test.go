@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/code-practice-archives/api-demo/internal/model"
@@ -10,14 +11,37 @@ import (
 	"gorm.io/gorm"
 )
 
-func newTestUserRepo(t *testing.T) *UserRepository {
+// 集成测试：需设置 TEST_MYSQL_DSN，例如
+// TEST_MYSQL_DSN='root:root@tcp(127.0.0.1:3306)/api_demo_test?charset=utf8mb4&parseTime=True&loc=Local'
+func openTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	db, err := database.OpenSQLite(":memory:")
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
+	dsn := os.Getenv("TEST_MYSQL_DSN")
+	if dsn == "" {
+		t.Skip("TEST_MYSQL_DSN not set; skip repository integration tests")
 	}
-	return NewUserRepository(db)
+
+	db, err := database.Open(database.Config{DSN: dsn})
+	if err != nil {
+		t.Fatalf("open mysql: %v", err)
+	}
+
+	if err := db.Exec("DELETE FROM users").Error; err != nil {
+		t.Fatalf("truncate users: %v", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("get sql db: %v", err)
+	}
+	t.Cleanup(func() { _ = sqlDB.Close() })
+
+	return db
+}
+
+func newTestUserRepo(t *testing.T) *UserRepository {
+	t.Helper()
+	return NewUserRepository(openTestDB(t))
 }
 
 func TestUserRepository_Create(t *testing.T) {
@@ -73,12 +97,12 @@ func TestUserRepository_Create(t *testing.T) {
 
 func TestUserRepository_FindByUsername(t *testing.T) {
 	tests := []struct {
-		name       string
-		setup      func(t *testing.T, repo *UserRepository)
-		username   string
-		wantUser   bool
-		wantErr    error
-		wantName   string
+		name     string
+		setup    func(t *testing.T, repo *UserRepository)
+		username string
+		wantUser bool
+		wantErr  error
+		wantName string
 	}{
 		{
 			name: "found",
