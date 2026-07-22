@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/code-practice-archives/api-demo/internal/pkg/database"
+	"github.com/code-practice-archives/api-demo/internal/pkg/ipallowlist"
 	"github.com/code-practice-archives/api-demo/internal/pkg/jwtx"
 	"github.com/code-practice-archives/api-demo/internal/pkg/logger"
 	"github.com/code-practice-archives/api-demo/internal/pkg/loginjail"
@@ -22,8 +23,9 @@ type Config struct {
 	Redis     redisx.Config    `mapstructure:"redis"`      // Redis 连接
 	JWT       jwtx.Config      `mapstructure:"jwt"`        // JWT 签发密钥与过期时间
 	Jail      loginjail.Config `mapstructure:"auth"`       // 登录失败锁定；YAML 键为 auth
-	RateLimit ratelimit.Config `mapstructure:"rate_limit"` // 请求限流
-	Log       logger.Config    `mapstructure:"log"`        // 日志级别与文件轮转
+	RateLimit   ratelimit.Config   `mapstructure:"rate_limit"`   // 请求限流
+	IPAllowlist ipallowlist.Config `mapstructure:"ip_allowlist"` // 私有接口 IP 白名单
+	Log         logger.Config      `mapstructure:"log"`          // 日志级别与文件轮转
 }
 
 // Load 使用 viper 读取 YAML 配置。path 为空时使用 DefaultConfigFile。

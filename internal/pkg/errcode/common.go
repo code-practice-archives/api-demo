@@ -21,4 +21,10 @@ var (
 		Message:    "too many requests, try again later",
 		HTTPStatus: http.StatusTooManyRequests,
 	}
+
+	ErrForbidden = &Error{
+		Code:       "common.forbidden",
+		Message:    "forbidden",
+		HTTPStatus: http.StatusForbidden,
+	}
 )

@@ -17,7 +17,7 @@ import (
 
 func initializeServer(cfg *config.Config) (*server.Server, func(), error) {
 	wire.Build(
-		wire.FieldsOf(new(*config.Config), "Log", "DB", "Jail", "RateLimit", "Redis", "JWT", "Server"),
+		wire.FieldsOf(new(*config.Config), "Log", "DB", "Jail", "RateLimit", "IPAllowlist", "Redis", "JWT", "Server"),
 		provideLogger,
 		database.Open,
 		provideRedis,
@@ -27,6 +27,7 @@ func initializeServer(cfg *config.Config) (*server.Server, func(), error) {
 		repository.New,
 		service.New,
 		handler.NewAuthHandler,
+		handler.NewPrivateHandler,
 		handler.New,
 		router.New,
 		provideHTTPServer,

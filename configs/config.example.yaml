@@ -34,3 +34,11 @@ rate_limit:
   enabled: true
   limit: 120             # 每个窗口内同一 IP 最多请求数
   window_seconds: 60     # 固定窗口时长（秒）
+
+# 私有接口（/api/v1/private/*）仅允许白名单 IP 访问
+ip_allowlist:
+  enabled: true
+  ips:
+    - "127.0.0.1"
+    - "::1"
+    # - "10.0.0.0/8"   # 也支持 CIDR

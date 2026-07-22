@@ -1,9 +1,10 @@
 package handler
 
 type Handlers struct {
-	Auth *AuthHandler
+	Auth    *AuthHandler
+	Private *PrivateHandler
 }
 
-func New(auth *AuthHandler) Handlers {
-	return Handlers{Auth: auth}
+func New(auth *AuthHandler, private *PrivateHandler) Handlers {
+	return Handlers{Auth: auth, Private: private}
 }

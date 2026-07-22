@@ -43,10 +43,12 @@ func initializeServer(cfg *config.Config) (*server.Server, func(), error) {
 	}
 	services := service.New(repositories, manager, jail, logger)
 	authHandler := handler.NewAuthHandler(services)
-	handlers := handler.New(authHandler)
+	privateHandler := handler.NewPrivateHandler()
+	handlers := handler.New(authHandler, privateHandler)
 	ratelimitConfig := cfg.RateLimit
 	limiter := provideRateLimiter(ratelimitConfig, client)
-	engine := router.New(handlers, manager, logger, limiter)
+	ipallowlistConfig := cfg.IPAllowlist
+	engine := router.New(handlers, manager, logger, limiter, ipallowlistConfig)
 	httpServer := provideHTTPServer(serverConfig, engine)
 	serverServer := server.New(httpServer, logger)
 	return serverServer, func() {
