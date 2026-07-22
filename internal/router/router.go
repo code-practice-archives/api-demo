@@ -34,5 +34,12 @@ func New(h handler.Handlers, jwt *jwtx.Manager, log *logger.Logger, limiter rate
 		private.GET("/ping", h.Private.Ping)
 	}
 
+	// OAuth 2.0 授权服务器（Authorization Code + PKCE）
+	oauthGroup := r.Group("/oauth")
+	{
+		oauthGroup.POST("/authorize", middleware.Auth(jwt), h.OAuth.Authorize)
+		oauthGroup.POST("/token", h.OAuth.Token)
+	}
+
 	return r
 }

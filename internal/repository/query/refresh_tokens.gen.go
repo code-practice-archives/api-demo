@@ -28,12 +28,14 @@ func newRefreshToken(db *gorm.DB, opts ...gen.DOOption) refreshToken {
 	tableName := _refreshToken.refreshTokenDo.TableName()
 	_refreshToken.ALL = field.NewAsterisk(tableName)
 	_refreshToken.Id = field.NewInt64(tableName, "id")
+	_refreshToken.CreatedAt = field.NewInt64(tableName, "created_at")
+	_refreshToken.UpdatedAt = field.NewInt64(tableName, "updated_at")
+	_refreshToken.DeletedAt = field.NewUint(tableName, "deleted_at")
 	_refreshToken.UserID = field.NewInt64(tableName, "user_id")
+	_refreshToken.ClientID = field.NewString(tableName, "client_id")
 	_refreshToken.TokenHash = field.NewString(tableName, "token_hash")
 	_refreshToken.ExpiresAt = field.NewInt64(tableName, "expires_at")
 	_refreshToken.RevokedAt = field.NewInt64(tableName, "revoked_at")
-	_refreshToken.CreatedAt = field.NewInt64(tableName, "created_at")
-	_refreshToken.UpdatedAt = field.NewInt64(tableName, "updated_at")
 
 	_refreshToken.fillFieldMap()
 
@@ -45,12 +47,14 @@ type refreshToken struct {
 
 	ALL       field.Asterisk
 	Id        field.Int64
+	CreatedAt field.Int64
+	UpdatedAt field.Int64
+	DeletedAt field.Uint
 	UserID    field.Int64
+	ClientID  field.String
 	TokenHash field.String
 	ExpiresAt field.Int64
 	RevokedAt field.Int64
-	CreatedAt field.Int64
-	UpdatedAt field.Int64
 
 	fieldMap map[string]field.Expr
 }
@@ -68,12 +72,14 @@ func (r refreshToken) As(alias string) *refreshToken {
 func (r *refreshToken) updateTableName(table string) *refreshToken {
 	r.ALL = field.NewAsterisk(table)
 	r.Id = field.NewInt64(table, "id")
+	r.CreatedAt = field.NewInt64(table, "created_at")
+	r.UpdatedAt = field.NewInt64(table, "updated_at")
+	r.DeletedAt = field.NewUint(table, "deleted_at")
 	r.UserID = field.NewInt64(table, "user_id")
+	r.ClientID = field.NewString(table, "client_id")
 	r.TokenHash = field.NewString(table, "token_hash")
 	r.ExpiresAt = field.NewInt64(table, "expires_at")
 	r.RevokedAt = field.NewInt64(table, "revoked_at")
-	r.CreatedAt = field.NewInt64(table, "created_at")
-	r.UpdatedAt = field.NewInt64(table, "updated_at")
 
 	r.fillFieldMap()
 
@@ -102,14 +108,16 @@ func (r *refreshToken) GetFieldByName(fieldName string) (field.OrderExpr, bool) 
 }
 
 func (r *refreshToken) fillFieldMap() {
-	r.fieldMap = make(map[string]field.Expr, 7)
+	r.fieldMap = make(map[string]field.Expr, 9)
 	r.fieldMap["id"] = r.Id
+	r.fieldMap["created_at"] = r.CreatedAt
+	r.fieldMap["updated_at"] = r.UpdatedAt
+	r.fieldMap["deleted_at"] = r.DeletedAt
 	r.fieldMap["user_id"] = r.UserID
+	r.fieldMap["client_id"] = r.ClientID
 	r.fieldMap["token_hash"] = r.TokenHash
 	r.fieldMap["expires_at"] = r.ExpiresAt
 	r.fieldMap["revoked_at"] = r.RevokedAt
-	r.fieldMap["created_at"] = r.CreatedAt
-	r.fieldMap["updated_at"] = r.UpdatedAt
 }
 
 func (r refreshToken) clone(db *gorm.DB) refreshToken {

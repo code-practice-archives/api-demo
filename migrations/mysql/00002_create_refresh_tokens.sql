@@ -1,6 +1,7 @@
 -- +goose Up
 -- refresh_tokens: opaque refresh token（仅存 SHA-256 哈希，可吊销）
 -- expires_at / revoked_at / created_at / updated_at 均为 Unix 秒；revoked_at=0 表示未吊销
+-- deleted_at 见 00006
 CREATE TABLE refresh_tokens (
     id         BIGINT      NOT NULL AUTO_INCREMENT PRIMARY KEY,
     user_id    BIGINT      NOT NULL,

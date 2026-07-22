@@ -246,6 +246,11 @@ func (s *AuthService) Refresh(ctx context.Context, in RefreshInput) (*AuthResult
 		log.Warn("refresh token revoked or expired", zap.Int64("token_id", stored.Id), zap.Int64("user_id", stored.UserID))
 		return nil, errcode.ErrInvalidRefreshToken
 	}
+	// OAuth 签发的 refresh 必须走 /oauth/token，避免被第一方端点轮换成无 client 绑定的令牌。
+	if stored.ClientID != "" {
+		log.Warn("refresh rejected oauth token via first-party endpoint", zap.Int64("token_id", stored.Id), zap.String("client_id", stored.ClientID))
+		return nil, errcode.ErrInvalidRefreshToken
+	}
 
 	user, err := s.repos.User.FindByID(ctx, stored.UserID)
 	if err != nil {
@@ -331,7 +336,12 @@ func (s *AuthService) issueTokens(ctx context.Context, user *model.User) (*AuthR
 	}
 
 	now := time.Now()
+	ts := now.Unix()
 	rt := &model.RefreshToken{
+		Model: model.Model{
+			CreatedAt: ts,
+			UpdatedAt: ts,
+		},
 		UserID:    user.Id,
 		TokenHash: hash,
 		ExpiresAt: now.Add(s.jwt.RefreshExpire()).Unix(),

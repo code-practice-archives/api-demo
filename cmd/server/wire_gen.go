@@ -35,16 +35,18 @@ func initializeServer(cfg *config.Config) (*server.Server, func(), error) {
 		return nil, nil, err
 	}
 	jail := provideLoginJail(loginjailConfig, client)
+	oauthConfig := cfg.OAuth
 	loggerConfig := cfg.Log
 	logger, cleanup2, err := provideLogger(loggerConfig)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	services := service.New(repositories, manager, jail, logger)
+	services := service.New(repositories, manager, jail, oauthConfig, logger)
 	authHandler := handler.NewAuthHandler(services)
+	oAuthHandler := handler.NewOAuthHandler(services)
 	privateHandler := handler.NewPrivateHandler()
-	handlers := handler.New(authHandler, privateHandler)
+	handlers := handler.New(authHandler, oAuthHandler, privateHandler)
 	ratelimitConfig := cfg.RateLimit
 	limiter := provideRateLimiter(ratelimitConfig, client)
 	ipallowlistConfig := cfg.IPAllowlist

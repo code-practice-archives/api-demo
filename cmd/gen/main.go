@@ -19,6 +19,8 @@ func main() {
 	g.ApplyBasic(
 		model.User{},
 		model.RefreshToken{},
+		model.OAuthClient{},
+		model.OAuthAuthorizationCode{},
 	)
 	g.Execute()
 }

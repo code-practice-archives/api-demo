@@ -3,15 +3,35 @@ package repository
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/code-practice-archives/api-demo/internal/model"
 	"github.com/code-practice-archives/api-demo/internal/pkg/database"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
+var resetTestDBOnce sync.Once
+
 func openTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
+
+	// 包内首次重建测试库，避免迁移演进后残留半成品 schema。
+	resetTestDBOnce.Do(func() {
+		admin, err := gorm.Open(mysql.Open("root:root@tcp(127.0.0.1:3306)/?charset=utf8mb4&parseTime=True&loc=Local"), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open mysql admin: %v", err)
+		}
+		adminSQL, err := admin.DB()
+		if err != nil {
+			t.Fatalf("admin sql db: %v", err)
+		}
+		defer adminSQL.Close()
+		if err := admin.Exec("DROP DATABASE IF EXISTS api_demo_test").Error; err != nil {
+			t.Fatalf("drop test db: %v", err)
+		}
+	})
 
 	db, err := database.Open(database.Config{
 		User:     "root",

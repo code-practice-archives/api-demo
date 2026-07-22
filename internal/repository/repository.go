@@ -22,14 +22,30 @@ type RefreshTokenStore interface {
 	Revoke(ctx context.Context, id int64, revokedAt int64) error
 }
 
+// OAuthClientStore OAuth 客户端持久化接口。
+type OAuthClientStore interface {
+	FindByClientID(ctx context.Context, clientID string) (*model.OAuthClient, error)
+}
+
+// OAuthAuthorizationCodeStore 授权码持久化接口。
+type OAuthAuthorizationCodeStore interface {
+	Create(ctx context.Context, code *model.OAuthAuthorizationCode) error
+	FindByCodeHash(ctx context.Context, hash string) (*model.OAuthAuthorizationCode, error)
+	MarkUsed(ctx context.Context, id int64, usedAt int64) error
+}
+
 type Repositories struct {
-	User         UserStore
-	RefreshToken RefreshTokenStore
+	User             UserStore
+	RefreshToken     RefreshTokenStore
+	OAuthClient      OAuthClientStore
+	OAuthAuthCode    OAuthAuthorizationCodeStore
 }
 
 func New(db *gorm.DB) *Repositories {
 	return &Repositories{
-		User:         NewUserRepository(db),
-		RefreshToken: NewRefreshTokenRepository(db),
+		User:          NewUserRepository(db),
+		RefreshToken:  NewRefreshTokenRepository(db),
+		OAuthClient:   NewOAuthClientRepository(db),
+		OAuthAuthCode: NewOAuthAuthorizationCodeRepository(db),
 	}
 }

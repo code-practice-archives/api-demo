@@ -42,3 +42,6 @@ ip_allowlist:
     - "127.0.0.1"
     - "::1"
     # - "10.0.0.0/8"   # 也支持 CIDR
+
+oauth:
+  code_ttl_minutes: 10 # 授权码有效分钟数

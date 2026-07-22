@@ -16,30 +16,38 @@ import (
 )
 
 var (
-	Q            = new(Query)
-	RefreshToken *refreshToken
-	User         *user
+	Q                      = new(Query)
+	OAuthAuthorizationCode *oAuthAuthorizationCode
+	OAuthClient            *oAuthClient
+	RefreshToken           *refreshToken
+	User                   *user
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
+	OAuthAuthorizationCode = &Q.OAuthAuthorizationCode
+	OAuthClient = &Q.OAuthClient
 	RefreshToken = &Q.RefreshToken
 	User = &Q.User
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:           db,
-		RefreshToken: newRefreshToken(db, opts...),
-		User:         newUser(db, opts...),
+		db:                     db,
+		OAuthAuthorizationCode: newOAuthAuthorizationCode(db, opts...),
+		OAuthClient:            newOAuthClient(db, opts...),
+		RefreshToken:           newRefreshToken(db, opts...),
+		User:                   newUser(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	RefreshToken refreshToken
-	User         user
+	OAuthAuthorizationCode oAuthAuthorizationCode
+	OAuthClient            oAuthClient
+	RefreshToken           refreshToken
+	User                   user
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -48,9 +56,11 @@ func (q *Query) UnderlyingDB() *gorm.DB { return q.db }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:           db,
-		RefreshToken: q.RefreshToken.clone(db),
-		User:         q.User.clone(db),
+		db:                     db,
+		OAuthAuthorizationCode: q.OAuthAuthorizationCode.clone(db),
+		OAuthClient:            q.OAuthClient.clone(db),
+		RefreshToken:           q.RefreshToken.clone(db),
+		User:                   q.User.clone(db),
 	}
 }
 
@@ -64,21 +74,27 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:           db,
-		RefreshToken: q.RefreshToken.replaceDB(db),
-		User:         q.User.replaceDB(db),
+		db:                     db,
+		OAuthAuthorizationCode: q.OAuthAuthorizationCode.replaceDB(db),
+		OAuthClient:            q.OAuthClient.replaceDB(db),
+		RefreshToken:           q.RefreshToken.replaceDB(db),
+		User:                   q.User.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	RefreshToken *refreshTokenDo
-	User         *userDo
+	OAuthAuthorizationCode *oAuthAuthorizationCodeDo
+	OAuthClient            *oAuthClientDo
+	RefreshToken           *refreshTokenDo
+	User                   *userDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		RefreshToken: q.RefreshToken.WithContext(ctx),
-		User:         q.User.WithContext(ctx),
+		OAuthAuthorizationCode: q.OAuthAuthorizationCode.WithContext(ctx),
+		OAuthClient:            q.OAuthClient.WithContext(ctx),
+		RefreshToken:           q.RefreshToken.WithContext(ctx),
+		User:                   q.User.WithContext(ctx),
 	}
 }
 
