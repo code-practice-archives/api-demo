@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 
 	"github.com/code-practice-archives/api-demo/internal/model"
@@ -11,17 +10,16 @@ import (
 	"gorm.io/gorm"
 )
 
-// 集成测试：需设置 TEST_MYSQL_DSN，例如
-// TEST_MYSQL_DSN='root:root@tcp(127.0.0.1:3306)/api_demo_test?charset=utf8mb4&parseTime=True&loc=Local'
 func openTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	dsn := os.Getenv("TEST_MYSQL_DSN")
-	if dsn == "" {
-		t.Skip("TEST_MYSQL_DSN not set; skip repository integration tests")
-	}
-
-	db, err := database.Open(database.Config{DSN: dsn})
+	db, err := database.Open(database.Config{
+		User:     "root",
+		Password: "root",
+		Host:     "127.0.0.1",
+		Port:     3306,
+		Database: "api_demo_test",
+	})
 	if err != nil {
 		t.Fatalf("open mysql: %v", err)
 	}

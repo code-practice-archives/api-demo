@@ -18,11 +18,12 @@ import (
 
 // Open 按配置打开 MySQL，启动时自动建库并迁移表结构。
 func Open(cfg Config) (*gorm.DB, error) {
-	if err := ensureMySQLDatabase(cfg.DSN); err != nil {
+	dsn := cfg.DSN()
+	if err := ensureMySQLDatabase(dsn); err != nil {
 		return nil, err
 	}
 
-	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Warn),
 	})
 	if err != nil {
